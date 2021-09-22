@@ -1666,7 +1666,6 @@ func TestIntentionList_acl(t *testing.T) {
 	defer codec.Close()
 
 	waitForLeaderEstablishment(t, s1)
-	waitForNewACLs(t, s1)
 
 	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "foo" { policy = "write" }`)
 	require.NoError(t, err)

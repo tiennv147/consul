@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -1324,9 +1325,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	joinWAN(t, s2, s1)
 	waitForLeaderEstablishment(t, s1)
 	waitForLeaderEstablishment(t, s2)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Everybody has the management policy.
@@ -1363,9 +1361,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	defer s2new.Shutdown()
 
 	waitForLeaderEstablishment(t, s2new)
-
-	// It should be able to transition without connectivity to the primary.
-	waitForNewACLs(t, s2new)
 }
 
 func TestLeader_ConfigEntryBootstrap(t *testing.T) {
@@ -1574,7 +1569,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1629,7 +1624,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1804,7 +1799,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1840,6 +1835,17 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 		})
 	})
+}
+
+func updateSerfTags(s *Server, key, value string) {
+	// Update the LAN serf
+	libserf.UpdateTag(s.serfLAN, key, value)
+
+	if s.serfWAN != nil {
+		libserf.UpdateTag(s.serfWAN, key, value)
+	}
+
+	s.updateEnterpriseSerfTags(key, value)
 }
 
 func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
