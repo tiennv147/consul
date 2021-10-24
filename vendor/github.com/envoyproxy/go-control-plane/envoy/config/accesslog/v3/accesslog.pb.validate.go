@@ -57,24 +57,24 @@ func (m *AccessLog) Validate() error {
 
 	switch m.ConfigType.(type) {
 
-	case *AccessLog_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return AccessLogValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	case *AccessLog_TypedConfig:
 
 		if v, ok := interface{}(m.GetTypedConfig()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return AccessLogValidationError{
 					field:  "TypedConfig",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *AccessLog_HiddenEnvoyDeprecatedConfig:
+
+		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return AccessLogValidationError{
+					field:  "HiddenEnvoyDeprecatedConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -276,6 +276,18 @@ func (m *AccessLogFilter) Validate() error {
 			if err := v.Validate(); err != nil {
 				return AccessLogFilterValidationError{
 					field:  "ExtensionFilter",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *AccessLogFilter_MetadataFilter:
+
+		if v, ok := interface{}(m.GetMetadataFilter()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return AccessLogFilterValidationError{
+					field:  "MetadataFilter",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -733,10 +745,10 @@ func (m *RuntimeFilter) Validate() error {
 		return nil
 	}
 
-	if len(m.GetRuntimeKey()) < 1 {
+	if utf8.RuneCountInString(m.GetRuntimeKey()) < 1 {
 		return RuntimeFilterValidationError{
 			field:  "RuntimeKey",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
@@ -1077,7 +1089,7 @@ func (m *ResponseFlagFilter) Validate() error {
 		if _, ok := _ResponseFlagFilter_Flags_InLookup[item]; !ok {
 			return ResponseFlagFilterValidationError{
 				field:  fmt.Sprintf("Flags[%v]", idx),
-				reason: "value must be in list [LH UH UT LR UR UF UC UO NR DI FI RL UAEX RLSE DC URX SI IH DPE]",
+				reason: "value must be in list [LH UH UT LR UR UF UC UO NR DI FI RL UAEX RLSE DC URX SI IH DPE UMSDR RFCF NFCF DT]",
 			}
 		}
 
@@ -1143,25 +1155,29 @@ var _ interface {
 } = ResponseFlagFilterValidationError{}
 
 var _ResponseFlagFilter_Flags_InLookup = map[string]struct{}{
-	"LH":   {},
-	"UH":   {},
-	"UT":   {},
-	"LR":   {},
-	"UR":   {},
-	"UF":   {},
-	"UC":   {},
-	"UO":   {},
-	"NR":   {},
-	"DI":   {},
-	"FI":   {},
-	"RL":   {},
-	"UAEX": {},
-	"RLSE": {},
-	"DC":   {},
-	"URX":  {},
-	"SI":   {},
-	"IH":   {},
-	"DPE":  {},
+	"LH":    {},
+	"UH":    {},
+	"UT":    {},
+	"LR":    {},
+	"UR":    {},
+	"UF":    {},
+	"UC":    {},
+	"UO":    {},
+	"NR":    {},
+	"DI":    {},
+	"FI":    {},
+	"RL":    {},
+	"UAEX":  {},
+	"RLSE":  {},
+	"DC":    {},
+	"URX":   {},
+	"SI":    {},
+	"IH":    {},
+	"DPE":   {},
+	"UMSDR": {},
+	"RFCF":  {},
+	"NFCF":  {},
+	"DT":    {},
 }
 
 // Validate checks the field values on GrpcStatusFilter with the rules defined
@@ -1243,6 +1259,91 @@ var _ interface {
 	ErrorName() string
 } = GrpcStatusFilterValidationError{}
 
+// Validate checks the field values on MetadataFilter with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *MetadataFilter) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetMatcher()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return MetadataFilterValidationError{
+				field:  "Matcher",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetMatchIfKeyNotFound()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return MetadataFilterValidationError{
+				field:  "MatchIfKeyNotFound",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// MetadataFilterValidationError is the validation error returned by
+// MetadataFilter.Validate if the designated constraints aren't met.
+type MetadataFilterValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e MetadataFilterValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e MetadataFilterValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e MetadataFilterValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e MetadataFilterValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e MetadataFilterValidationError) ErrorName() string { return "MetadataFilterValidationError" }
+
+// Error satisfies the builtin error interface
+func (e MetadataFilterValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sMetadataFilter.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = MetadataFilterValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = MetadataFilterValidationError{}
+
 // Validate checks the field values on ExtensionFilter with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.
@@ -1255,24 +1356,24 @@ func (m *ExtensionFilter) Validate() error {
 
 	switch m.ConfigType.(type) {
 
-	case *ExtensionFilter_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return ExtensionFilterValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	case *ExtensionFilter_TypedConfig:
 
 		if v, ok := interface{}(m.GetTypedConfig()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ExtensionFilterValidationError{
 					field:  "TypedConfig",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *ExtensionFilter_HiddenEnvoyDeprecatedConfig:
+
+		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ExtensionFilterValidationError{
+					field:  "HiddenEnvoyDeprecatedConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

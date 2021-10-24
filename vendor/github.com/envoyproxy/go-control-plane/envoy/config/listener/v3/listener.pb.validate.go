@@ -40,6 +40,88 @@ var (
 // define the regex for a UUID once up-front
 var _listener_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
+// Validate checks the field values on ListenerCollection with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *ListenerCollection) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	for idx, item := range m.GetEntries() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ListenerCollectionValidationError{
+					field:  fmt.Sprintf("Entries[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ListenerCollectionValidationError is the validation error returned by
+// ListenerCollection.Validate if the designated constraints aren't met.
+type ListenerCollectionValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListenerCollectionValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListenerCollectionValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListenerCollectionValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListenerCollectionValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListenerCollectionValidationError) ErrorName() string {
+	return "ListenerCollectionValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListenerCollectionValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListenerCollection.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListenerCollectionValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListenerCollectionValidationError{}
+
 // Validate checks the field values on Listener with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
 func (m *Listener) Validate() error {
@@ -81,10 +163,10 @@ func (m *Listener) Validate() error {
 
 	}
 
-	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedUseOriginalDst()).(interface{ Validate() error }); ok {
+	if v, ok := interface{}(m.GetDefaultFilterChain()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ListenerValidationError{
-				field:  "HiddenEnvoyDeprecatedUseOriginalDst",
+				field:  "DefaultFilterChain",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -242,6 +324,36 @@ func (m *Listener) Validate() error {
 			}
 		}
 
+	}
+
+	if v, ok := interface{}(m.GetUdpWriterConfig()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ListenerValidationError{
+				field:  "UdpWriterConfig",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetTcpBacklogSize()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ListenerValidationError{
+				field:  "TcpBacklogSize",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedUseOriginalDst()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ListenerValidationError{
+				field:  "HiddenEnvoyDeprecatedUseOriginalDst",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
 	}
 
 	return nil
@@ -494,7 +606,9 @@ type Listener_ConnectionBalanceConfig_ExactBalanceValidationError struct {
 func (e Listener_ConnectionBalanceConfig_ExactBalanceValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e Listener_ConnectionBalanceConfig_ExactBalanceValidationError) Reason() string { return e.reason }
+func (e Listener_ConnectionBalanceConfig_ExactBalanceValidationError) Reason() string {
+	return e.reason
+}
 
 // Cause function returns cause value.
 func (e Listener_ConnectionBalanceConfig_ExactBalanceValidationError) Cause() error { return e.cause }

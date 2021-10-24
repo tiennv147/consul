@@ -43,7 +43,12 @@ func (m *RBAC) Validate() error {
 		return nil
 	}
 
-	// no validation rules for Action
+	if _, ok := RBAC_Action_name[int32(m.GetAction())]; !ok {
+		return RBACValidationError{
+			field:  "Action",
+			reason: "value must be one of the defined enum values",
+		}
+	}
 
 	for key, val := range m.GetPolicies() {
 		_ = val
@@ -174,6 +179,16 @@ func (m *Policy) Validate() error {
 		if err := v.Validate(); err != nil {
 			return PolicyValidationError{
 				field:  "Condition",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetCheckedCondition()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return PolicyValidationError{
+				field:  "CheckedCondition",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -485,6 +500,30 @@ func (m *Principal) Validate() error {
 			if err := v.Validate(); err != nil {
 				return PrincipalValidationError{
 					field:  "SourceIp",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *Principal_DirectRemoteIp:
+
+		if v, ok := interface{}(m.GetDirectRemoteIp()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return PrincipalValidationError{
+					field:  "DirectRemoteIp",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *Principal_RemoteIp:
+
+		if v, ok := interface{}(m.GetRemoteIp()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return PrincipalValidationError{
+					field:  "RemoteIp",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

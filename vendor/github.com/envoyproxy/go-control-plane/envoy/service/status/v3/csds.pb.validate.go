@@ -59,6 +59,16 @@ func (m *ClientStatusRequest) Validate() error {
 
 	}
 
+	if v, ok := interface{}(m.GetNode()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ClientStatusRequestValidationError{
+				field:  "Node",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -128,6 +138,8 @@ func (m *PerXdsConfig) Validate() error {
 
 	// no validation rules for Status
 
+	// no validation rules for ClientStatus
+
 	switch m.PerXdsConfig.(type) {
 
 	case *PerXdsConfig_ListenerConfig:
@@ -172,6 +184,18 @@ func (m *PerXdsConfig) Validate() error {
 			if err := v.Validate(); err != nil {
 				return PerXdsConfigValidationError{
 					field:  "ScopedRouteConfig",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *PerXdsConfig_EndpointConfig:
+
+		if v, ok := interface{}(m.GetEndpointConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return PerXdsConfigValidationError{
+					field:  "EndpointConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

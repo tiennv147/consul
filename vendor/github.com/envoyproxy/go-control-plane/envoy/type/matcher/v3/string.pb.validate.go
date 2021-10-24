@@ -53,28 +53,19 @@ func (m *StringMatcher) Validate() error {
 
 	case *StringMatcher_Prefix:
 
-		if len(m.GetPrefix()) < 1 {
+		if utf8.RuneCountInString(m.GetPrefix()) < 1 {
 			return StringMatcherValidationError{
 				field:  "Prefix",
-				reason: "value length must be at least 1 bytes",
+				reason: "value length must be at least 1 runes",
 			}
 		}
 
 	case *StringMatcher_Suffix:
 
-		if len(m.GetSuffix()) < 1 {
+		if utf8.RuneCountInString(m.GetSuffix()) < 1 {
 			return StringMatcherValidationError{
 				field:  "Suffix",
-				reason: "value length must be at least 1 bytes",
-			}
-		}
-
-	case *StringMatcher_HiddenEnvoyDeprecatedRegex:
-
-		if len(m.GetHiddenEnvoyDeprecatedRegex()) > 1024 {
-			return StringMatcherValidationError{
-				field:  "HiddenEnvoyDeprecatedRegex",
-				reason: "value length must be at most 1024 bytes",
+				reason: "value length must be at least 1 runes",
 			}
 		}
 
@@ -94,6 +85,24 @@ func (m *StringMatcher) Validate() error {
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+			}
+		}
+
+	case *StringMatcher_Contains:
+
+		if utf8.RuneCountInString(m.GetContains()) < 1 {
+			return StringMatcherValidationError{
+				field:  "Contains",
+				reason: "value length must be at least 1 runes",
+			}
+		}
+
+	case *StringMatcher_HiddenEnvoyDeprecatedRegex:
+
+		if len(m.GetHiddenEnvoyDeprecatedRegex()) > 1024 {
+			return StringMatcherValidationError{
+				field:  "HiddenEnvoyDeprecatedRegex",
+				reason: "value length must be at most 1024 bytes",
 			}
 		}
 

@@ -44,17 +44,19 @@ func (m *ScopedRouteConfiguration) Validate() error {
 		return nil
 	}
 
-	if len(m.GetName()) < 1 {
+	// no validation rules for OnDemand
+
+	if utf8.RuneCountInString(m.GetName()) < 1 {
 		return ScopedRouteConfigurationValidationError{
 			field:  "Name",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
-	if len(m.GetRouteConfigurationName()) < 1 {
+	if utf8.RuneCountInString(m.GetRouteConfigurationName()) < 1 {
 		return ScopedRouteConfigurationValidationError{
 			field:  "RouteConfigurationName",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 

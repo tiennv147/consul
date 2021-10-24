@@ -235,6 +235,16 @@ func (m *OkHttpResponse) Validate() error {
 
 	}
 
+	if v, ok := interface{}(m.GetDynamicMetadata()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return OkHttpResponseValidationError{
+				field:  "DynamicMetadata",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -304,6 +314,16 @@ func (m *CheckResponse) Validate() error {
 		if err := v.Validate(); err != nil {
 			return CheckResponseValidationError{
 				field:  "Status",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetDynamicMetadata()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return CheckResponseValidationError{
+				field:  "DynamicMetadata",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

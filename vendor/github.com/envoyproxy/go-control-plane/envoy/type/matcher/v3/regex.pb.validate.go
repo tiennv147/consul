@@ -44,10 +44,10 @@ func (m *RegexMatcher) Validate() error {
 		return nil
 	}
 
-	if len(m.GetRegex()) < 1 {
+	if utf8.RuneCountInString(m.GetRegex()) < 1 {
 		return RegexMatcherValidationError{
 			field:  "Regex",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
@@ -143,6 +143,13 @@ var _ interface {
 func (m *RegexMatchAndSubstitute) Validate() error {
 	if m == nil {
 		return nil
+	}
+
+	if m.GetPattern() == nil {
+		return RegexMatchAndSubstituteValidationError{
+			field:  "Pattern",
+			reason: "value is required",
+		}
 	}
 
 	if v, ok := interface{}(m.GetPattern()).(interface{ Validate() error }); ok {

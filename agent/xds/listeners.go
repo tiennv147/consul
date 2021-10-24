@@ -1594,6 +1594,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		SetCurrentClientCertDetails: &envoy_http_v3.HttpConnectionManager_SetCurrentClientCertDetails {
 			Subject: &wrappers.BoolValue{Value:true},
 			Uri: true,
+			Dns: true,
 		},
 		HttpFilters: []*envoy_http_v3.HttpFilter{
 			{

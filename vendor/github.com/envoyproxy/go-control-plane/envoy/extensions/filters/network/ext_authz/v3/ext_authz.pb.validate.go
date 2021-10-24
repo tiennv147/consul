@@ -16,6 +16,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes"
+
+	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 )
 
 // ensure the imports are used
@@ -31,6 +33,8 @@ var (
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
 	_ = ptypes.DynamicAny{}
+
+	_ = v3.ApiVersion(0)
 )
 
 // define the regex for a UUID once up-front
@@ -43,10 +47,10 @@ func (m *ExtAuthz) Validate() error {
 		return nil
 	}
 
-	if len(m.GetStatPrefix()) < 1 {
+	if utf8.RuneCountInString(m.GetStatPrefix()) < 1 {
 		return ExtAuthzValidationError{
 			field:  "StatPrefix",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
@@ -63,6 +67,23 @@ func (m *ExtAuthz) Validate() error {
 	// no validation rules for FailureModeAllow
 
 	// no validation rules for IncludePeerCertificate
+
+	if _, ok := v3.ApiVersion_name[int32(m.GetTransportApiVersion())]; !ok {
+		return ExtAuthzValidationError{
+			field:  "TransportApiVersion",
+			reason: "value must be one of the defined enum values",
+		}
+	}
+
+	if v, ok := interface{}(m.GetFilterEnabledMetadata()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ExtAuthzValidationError{
+				field:  "FilterEnabledMetadata",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
 
 	return nil
 }

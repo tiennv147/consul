@@ -51,10 +51,10 @@ func (m *HttpConnectionManager) Validate() error {
 		}
 	}
 
-	if len(m.GetStatPrefix()) < 1 {
+	if utf8.RuneCountInString(m.GetStatPrefix()) < 1 {
 		return HttpConnectionManagerValidationError{
 			field:  "StatPrefix",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
@@ -123,7 +123,12 @@ func (m *HttpConnectionManager) Validate() error {
 		}
 	}
 
-	// no validation rules for ServerName
+	if !_HttpConnectionManager_ServerName_Pattern.MatchString(m.GetServerName()) {
+		return HttpConnectionManagerValidationError{
+			field:  "ServerName",
+			reason: "value does not match regex pattern \"^[^\\x00\\n\\r]*$\"",
+		}
+	}
 
 	if _, ok := HttpConnectionManager_ServerHeaderTransformation_name[int32(m.GetServerHeaderTransformation())]; !ok {
 		return HttpConnectionManagerValidationError{
@@ -141,16 +146,6 @@ func (m *HttpConnectionManager) Validate() error {
 			}
 		}
 
-	}
-
-	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedIdleTimeout()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return HttpConnectionManagerValidationError{
-				field:  "HiddenEnvoyDeprecatedIdleTimeout",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
 	}
 
 	if v, ok := interface{}(m.GetStreamIdleTimeout()).(interface{ Validate() error }); ok {
@@ -171,6 +166,27 @@ func (m *HttpConnectionManager) Validate() error {
 				cause:  err,
 			}
 		}
+	}
+
+	if d := m.GetRequestHeadersTimeout(); d != nil {
+		dur, err := ptypes.Duration(d)
+		if err != nil {
+			return HttpConnectionManagerValidationError{
+				field:  "RequestHeadersTimeout",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+		}
+
+		gte := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+		if dur < gte {
+			return HttpConnectionManagerValidationError{
+				field:  "RequestHeadersTimeout",
+				reason: "value must be greater than or equal to 0s",
+			}
+		}
+
 	}
 
 	if v, ok := interface{}(m.GetDrainTimeout()).(interface{ Validate() error }); ok {
@@ -246,6 +262,8 @@ func (m *HttpConnectionManager) Validate() error {
 
 	// no validation rules for PreserveExternalRequestId
 
+	// no validation rules for AlwaysSetRequestIdInResponse
+
 	if _, ok := HttpConnectionManager_ForwardClientCertDetails_name[int32(m.GetForwardClientCertDetails())]; !ok {
 		return HttpConnectionManagerValidationError{
 			field:  "ForwardClientCertDetails",
@@ -298,6 +316,38 @@ func (m *HttpConnectionManager) Validate() error {
 		if err := v.Validate(); err != nil {
 			return HttpConnectionManagerValidationError{
 				field:  "RequestIdExtension",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetLocalReplyConfig()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return HttpConnectionManagerValidationError{
+				field:  "LocalReplyConfig",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for StripMatchingHostPort
+
+	if v, ok := interface{}(m.GetStreamErrorOnInvalidHttpMessage()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return HttpConnectionManagerValidationError{
+				field:  "StreamErrorOnInvalidHttpMessage",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedIdleTimeout()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return HttpConnectionManagerValidationError{
+				field:  "HiddenEnvoyDeprecatedIdleTimeout",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -409,6 +459,233 @@ var _ interface {
 	ErrorName() string
 } = HttpConnectionManagerValidationError{}
 
+var _HttpConnectionManager_ServerName_Pattern = regexp.MustCompile("^[^\x00\n\r]*$")
+
+// Validate checks the field values on LocalReplyConfig with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *LocalReplyConfig) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	for idx, item := range m.GetMappers() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return LocalReplyConfigValidationError{
+					field:  fmt.Sprintf("Mappers[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if v, ok := interface{}(m.GetBodyFormat()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return LocalReplyConfigValidationError{
+				field:  "BodyFormat",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// LocalReplyConfigValidationError is the validation error returned by
+// LocalReplyConfig.Validate if the designated constraints aren't met.
+type LocalReplyConfigValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e LocalReplyConfigValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e LocalReplyConfigValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e LocalReplyConfigValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e LocalReplyConfigValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e LocalReplyConfigValidationError) ErrorName() string { return "LocalReplyConfigValidationError" }
+
+// Error satisfies the builtin error interface
+func (e LocalReplyConfigValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sLocalReplyConfig.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = LocalReplyConfigValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = LocalReplyConfigValidationError{}
+
+// Validate checks the field values on ResponseMapper with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *ResponseMapper) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if m.GetFilter() == nil {
+		return ResponseMapperValidationError{
+			field:  "Filter",
+			reason: "value is required",
+		}
+	}
+
+	if v, ok := interface{}(m.GetFilter()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ResponseMapperValidationError{
+				field:  "Filter",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if wrapper := m.GetStatusCode(); wrapper != nil {
+
+		if val := wrapper.GetValue(); val < 200 || val >= 600 {
+			return ResponseMapperValidationError{
+				field:  "StatusCode",
+				reason: "value must be inside range [200, 600)",
+			}
+		}
+
+	}
+
+	if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ResponseMapperValidationError{
+				field:  "Body",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetBodyFormatOverride()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ResponseMapperValidationError{
+				field:  "BodyFormatOverride",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(m.GetHeadersToAdd()) > 1000 {
+		return ResponseMapperValidationError{
+			field:  "HeadersToAdd",
+			reason: "value must contain no more than 1000 item(s)",
+		}
+	}
+
+	for idx, item := range m.GetHeadersToAdd() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ResponseMapperValidationError{
+					field:  fmt.Sprintf("HeadersToAdd[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ResponseMapperValidationError is the validation error returned by
+// ResponseMapper.Validate if the designated constraints aren't met.
+type ResponseMapperValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ResponseMapperValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ResponseMapperValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ResponseMapperValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ResponseMapperValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ResponseMapperValidationError) ErrorName() string { return "ResponseMapperValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ResponseMapperValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sResponseMapper.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ResponseMapperValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ResponseMapperValidationError{}
+
 // Validate checks the field values on Rds with the rules defined in the proto
 // definition for this message. If any rules are violated, an error is returned.
 func (m *Rds) Validate() error {
@@ -433,12 +710,7 @@ func (m *Rds) Validate() error {
 		}
 	}
 
-	if len(m.GetRouteConfigName()) < 1 {
-		return RdsValidationError{
-			field:  "RouteConfigName",
-			reason: "value length must be at least 1 bytes",
-		}
-	}
+	// no validation rules for RouteConfigName
 
 	return nil
 }
@@ -595,10 +867,10 @@ func (m *ScopedRoutes) Validate() error {
 		return nil
 	}
 
-	if len(m.GetName()) < 1 {
+	if utf8.RuneCountInString(m.GetName()) < 1 {
 		return ScopedRoutesValidationError{
 			field:  "Name",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
@@ -815,26 +1087,14 @@ func (m *HttpFilter) Validate() error {
 		return nil
 	}
 
-	if len(m.GetName()) < 1 {
+	if utf8.RuneCountInString(m.GetName()) < 1 {
 		return HttpFilterValidationError{
 			field:  "Name",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
 	switch m.ConfigType.(type) {
-
-	case *HttpFilter_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return HttpFilterValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
 
 	case *HttpFilter_TypedConfig:
 
@@ -842,6 +1102,30 @@ func (m *HttpFilter) Validate() error {
 			if err := v.Validate(); err != nil {
 				return HttpFilterValidationError{
 					field:  "TypedConfig",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *HttpFilter_ConfigDiscovery:
+
+		if v, ok := interface{}(m.GetConfigDiscovery()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return HttpFilterValidationError{
+					field:  "ConfigDiscovery",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *HttpFilter_HiddenEnvoyDeprecatedConfig:
+
+		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return HttpFilterValidationError{
+					field:  "HiddenEnvoyDeprecatedConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -992,13 +1276,6 @@ func (m *HttpConnectionManager_Tracing) Validate() error {
 		return nil
 	}
 
-	if _, ok := HttpConnectionManager_Tracing_OperationName_name[int32(m.GetHiddenEnvoyDeprecatedOperationName())]; !ok {
-		return HttpConnectionManager_TracingValidationError{
-			field:  "HiddenEnvoyDeprecatedOperationName",
-			reason: "value must be one of the defined enum values",
-		}
-	}
-
 	if v, ok := interface{}(m.GetClientSampling()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return HttpConnectionManager_TracingValidationError{
@@ -1063,6 +1340,13 @@ func (m *HttpConnectionManager_Tracing) Validate() error {
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+		}
+	}
+
+	if _, ok := HttpConnectionManager_Tracing_OperationName_name[int32(m.GetHiddenEnvoyDeprecatedOperationName())]; !ok {
+		return HttpConnectionManager_TracingValidationError{
+			field:  "HiddenEnvoyDeprecatedOperationName",
+			reason: "value must be one of the defined enum values",
 		}
 	}
 
@@ -1575,10 +1859,10 @@ func (m *ScopedRoutes_ScopeKeyBuilder_FragmentBuilder_HeaderValueExtractor) Vali
 		return nil
 	}
 
-	if len(m.GetName()) < 1 {
+	if utf8.RuneCountInString(m.GetName()) < 1 {
 		return ScopedRoutes_ScopeKeyBuilder_FragmentBuilder_HeaderValueExtractorValidationError{
 			field:  "Name",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
@@ -1681,17 +1965,17 @@ func (m *ScopedRoutes_ScopeKeyBuilder_FragmentBuilder_HeaderValueExtractor_KvEle
 		return nil
 	}
 
-	if len(m.GetSeparator()) < 1 {
+	if utf8.RuneCountInString(m.GetSeparator()) < 1 {
 		return ScopedRoutes_ScopeKeyBuilder_FragmentBuilder_HeaderValueExtractor_KvElementValidationError{
 			field:  "Separator",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
-	if len(m.GetKey()) < 1 {
+	if utf8.RuneCountInString(m.GetKey()) < 1 {
 		return ScopedRoutes_ScopeKeyBuilder_FragmentBuilder_HeaderValueExtractor_KvElementValidationError{
 			field:  "Key",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 

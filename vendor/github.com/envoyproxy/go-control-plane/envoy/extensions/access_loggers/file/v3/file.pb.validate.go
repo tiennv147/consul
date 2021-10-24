@@ -44,10 +44,10 @@ func (m *FileAccessLog) Validate() error {
 		return nil
 	}
 
-	if len(m.GetPath()) < 1 {
+	if utf8.RuneCountInString(m.GetPath()) < 1 {
 		return FileAccessLogValidationError{
 			field:  "Path",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
@@ -74,6 +74,25 @@ func (m *FileAccessLog) Validate() error {
 			if err := v.Validate(); err != nil {
 				return FileAccessLogValidationError{
 					field:  "TypedJsonFormat",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *FileAccessLog_LogFormat:
+
+		if m.GetLogFormat() == nil {
+			return FileAccessLogValidationError{
+				field:  "LogFormat",
+				reason: "value is required",
+			}
+		}
+
+		if v, ok := interface{}(m.GetLogFormat()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return FileAccessLogValidationError{
+					field:  "LogFormat",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

@@ -16,6 +16,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes"
+
+	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 )
 
 // ensure the imports are used
@@ -31,6 +33,8 @@ var (
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
 	_ = ptypes.DynamicAny{}
+
+	_ = v3.ApiVersion(0)
 )
 
 // define the regex for a UUID once up-front
@@ -43,9 +47,14 @@ func (m *ExtAuthz) Validate() error {
 		return nil
 	}
 
-	// no validation rules for FailureModeAllow
+	if _, ok := v3.ApiVersion_name[int32(m.GetTransportApiVersion())]; !ok {
+		return ExtAuthzValidationError{
+			field:  "TransportApiVersion",
+			reason: "value must be one of the defined enum values",
+		}
+	}
 
-	// no validation rules for HiddenEnvoyDeprecatedUseAlpha
+	// no validation rules for FailureModeAllow
 
 	if v, ok := interface{}(m.GetWithRequestBody()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
@@ -79,7 +88,31 @@ func (m *ExtAuthz) Validate() error {
 		}
 	}
 
+	if v, ok := interface{}(m.GetFilterEnabledMetadata()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ExtAuthzValidationError{
+				field:  "FilterEnabledMetadata",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetDenyAtDisable()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ExtAuthzValidationError{
+				field:  "DenyAtDisable",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	// no validation rules for IncludePeerCertificate
+
+	// no validation rules for StatPrefix
+
+	// no validation rules for HiddenEnvoyDeprecatedUseAlpha
 
 	switch m.Services.(type) {
 
@@ -182,6 +215,8 @@ func (m *BufferSettings) Validate() error {
 	}
 
 	// no validation rules for AllowPartialMessage
+
+	// no validation rules for PackAsBytes
 
 	return nil
 }
@@ -447,6 +482,16 @@ func (m *AuthorizationResponse) Validate() error {
 		}
 	}
 
+	if v, ok := interface{}(m.GetAllowedUpstreamHeadersToAppend()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AuthorizationResponseValidationError{
+				field:  "AllowedUpstreamHeadersToAppend",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if v, ok := interface{}(m.GetAllowedClientHeaders()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return AuthorizationResponseValidationError{
@@ -628,6 +673,8 @@ func (m *CheckSettings) Validate() error {
 	}
 
 	// no validation rules for ContextExtensions
+
+	// no validation rules for DisableRequestBodyBuffering
 
 	return nil
 }

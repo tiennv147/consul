@@ -54,16 +54,6 @@ func (m *Gzip) Validate() error {
 
 	}
 
-	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedContentLength()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return GzipValidationError{
-				field:  "HiddenEnvoyDeprecatedContentLength",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
 	if _, ok := Gzip_CompressionLevel_Enum_name[int32(m.GetCompressionLevel())]; !ok {
 		return GzipValidationError{
 			field:  "CompressionLevel",
@@ -77,10 +67,6 @@ func (m *Gzip) Validate() error {
 			reason: "value must be one of the defined enum values",
 		}
 	}
-
-	// no validation rules for HiddenEnvoyDeprecatedDisableOnEtagHeader
-
-	// no validation rules for HiddenEnvoyDeprecatedRemoveAcceptEncodingHeader
 
 	if wrapper := m.GetWindowBits(); wrapper != nil {
 
@@ -102,6 +88,31 @@ func (m *Gzip) Validate() error {
 			}
 		}
 	}
+
+	if wrapper := m.GetChunkSize(); wrapper != nil {
+
+		if val := wrapper.GetValue(); val < 4096 || val > 65536 {
+			return GzipValidationError{
+				field:  "ChunkSize",
+				reason: "value must be inside range [4096, 65536]",
+			}
+		}
+
+	}
+
+	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedContentLength()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GzipValidationError{
+				field:  "HiddenEnvoyDeprecatedContentLength",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for HiddenEnvoyDeprecatedDisableOnEtagHeader
+
+	// no validation rules for HiddenEnvoyDeprecatedRemoveAcceptEncodingHeader
 
 	return nil
 }

@@ -152,20 +152,20 @@ func (m *Bootstrap) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetTracing()).(interface{ Validate() error }); ok {
+	if v, ok := interface{}(m.GetWatchdogs()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return BootstrapValidationError{
-				field:  "Tracing",
+				field:  "Watchdogs",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
 		}
 	}
 
-	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedRuntime()).(interface{ Validate() error }); ok {
+	if v, ok := interface{}(m.GetTracing()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return BootstrapValidationError{
-				field:  "HiddenEnvoyDeprecatedRuntime",
+				field:  "Tracing",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -217,6 +217,90 @@ func (m *Bootstrap) Validate() error {
 	}
 
 	// no validation rules for UseTcpForDnsLookups
+
+	for idx, item := range m.GetBootstrapExtensions() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return BootstrapValidationError{
+					field:  fmt.Sprintf("BootstrapExtensions[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	for idx, item := range m.GetFatalActions() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return BootstrapValidationError{
+					field:  fmt.Sprintf("FatalActions[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	for idx, item := range m.GetConfigSources() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return BootstrapValidationError{
+					field:  fmt.Sprintf("ConfigSources[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if v, ok := interface{}(m.GetDefaultConfigSource()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BootstrapValidationError{
+				field:  "DefaultConfigSource",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for DefaultSocketInterface
+
+	for key, val := range m.GetCertificateProviderInstances() {
+		_ = val
+
+		// no validation rules for CertificateProviderInstances[key]
+
+		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return BootstrapValidationError{
+					field:  fmt.Sprintf("CertificateProviderInstances[%v]", key),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedRuntime()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BootstrapValidationError{
+				field:  "HiddenEnvoyDeprecatedRuntime",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
 
 	return nil
 }
@@ -465,11 +549,110 @@ var _ interface {
 	ErrorName() string
 } = ClusterManagerValidationError{}
 
+// Validate checks the field values on Watchdogs with the rules defined in the
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Watchdogs) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetMainThreadWatchdog()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return WatchdogsValidationError{
+				field:  "MainThreadWatchdog",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetWorkerWatchdog()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return WatchdogsValidationError{
+				field:  "WorkerWatchdog",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// WatchdogsValidationError is the validation error returned by
+// Watchdogs.Validate if the designated constraints aren't met.
+type WatchdogsValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e WatchdogsValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e WatchdogsValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e WatchdogsValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e WatchdogsValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e WatchdogsValidationError) ErrorName() string { return "WatchdogsValidationError" }
+
+// Error satisfies the builtin error interface
+func (e WatchdogsValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sWatchdogs.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = WatchdogsValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = WatchdogsValidationError{}
+
 // Validate checks the field values on Watchdog with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
 func (m *Watchdog) Validate() error {
 	if m == nil {
 		return nil
+	}
+
+	for idx, item := range m.GetActions() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return WatchdogValidationError{
+					field:  fmt.Sprintf("Actions[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	}
 
 	if v, ok := interface{}(m.GetMissTimeout()).(interface{ Validate() error }); ok {
@@ -502,10 +685,41 @@ func (m *Watchdog) Validate() error {
 		}
 	}
 
+	if d := m.GetMaxKillTimeoutJitter(); d != nil {
+		dur, err := ptypes.Duration(d)
+		if err != nil {
+			return WatchdogValidationError{
+				field:  "MaxKillTimeoutJitter",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+		}
+
+		gte := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+		if dur < gte {
+			return WatchdogValidationError{
+				field:  "MaxKillTimeoutJitter",
+				reason: "value must be greater than or equal to 0s",
+			}
+		}
+
+	}
+
 	if v, ok := interface{}(m.GetMultikillTimeout()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return WatchdogValidationError{
 				field:  "MultikillTimeout",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetMultikillThreshold()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return WatchdogValidationError{
+				field:  "MultikillThreshold",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -568,6 +782,81 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = WatchdogValidationError{}
+
+// Validate checks the field values on FatalAction with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *FatalAction) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return FatalActionValidationError{
+				field:  "Config",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// FatalActionValidationError is the validation error returned by
+// FatalAction.Validate if the designated constraints aren't met.
+type FatalActionValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e FatalActionValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e FatalActionValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e FatalActionValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e FatalActionValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e FatalActionValidationError) ErrorName() string { return "FatalActionValidationError" }
+
+// Error satisfies the builtin error interface
+func (e FatalActionValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sFatalAction.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = FatalActionValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = FatalActionValidationError{}
 
 // Validate checks the field values on Runtime with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
@@ -657,10 +946,10 @@ func (m *RuntimeLayer) Validate() error {
 		return nil
 	}
 
-	if len(m.GetName()) < 1 {
+	if utf8.RuneCountInString(m.GetName()) < 1 {
 		return RuntimeLayerValidationError{
 			field:  "Name",
-			reason: "value length must be at least 1 bytes",
+			reason: "value length must be at least 1 runes",
 		}
 	}
 
@@ -989,6 +1278,8 @@ func (m *Bootstrap_DynamicResources) Validate() error {
 		}
 	}
 
+	// no validation rules for LdsResourcesLocator
+
 	if v, ok := interface{}(m.GetCdsConfig()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return Bootstrap_DynamicResourcesValidationError{
@@ -998,6 +1289,8 @@ func (m *Bootstrap_DynamicResources) Validate() error {
 			}
 		}
 	}
+
+	// no validation rules for CdsResourcesLocator
 
 	if v, ok := interface{}(m.GetAdsConfig()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
@@ -1147,6 +1440,90 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ClusterManager_OutlierDetectionValidationError{}
+
+// Validate checks the field values on Watchdog_WatchdogAction with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *Watchdog_WatchdogAction) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return Watchdog_WatchdogActionValidationError{
+				field:  "Config",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if _, ok := Watchdog_WatchdogAction_WatchdogEvent_name[int32(m.GetEvent())]; !ok {
+		return Watchdog_WatchdogActionValidationError{
+			field:  "Event",
+			reason: "value must be one of the defined enum values",
+		}
+	}
+
+	return nil
+}
+
+// Watchdog_WatchdogActionValidationError is the validation error returned by
+// Watchdog_WatchdogAction.Validate if the designated constraints aren't met.
+type Watchdog_WatchdogActionValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e Watchdog_WatchdogActionValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e Watchdog_WatchdogActionValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e Watchdog_WatchdogActionValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e Watchdog_WatchdogActionValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e Watchdog_WatchdogActionValidationError) ErrorName() string {
+	return "Watchdog_WatchdogActionValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e Watchdog_WatchdogActionValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sWatchdog_WatchdogAction.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = Watchdog_WatchdogActionValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = Watchdog_WatchdogActionValidationError{}
 
 // Validate checks the field values on RuntimeLayer_DiskLayer with the rules
 // defined in the proto definition for this message. If any rules are
