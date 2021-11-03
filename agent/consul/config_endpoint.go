@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -53,7 +54,6 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	if err := c.srv.validateEnterpriseRequest(args.Entry.GetEnterpriseMeta(), true); err != nil {
 		return err
 	}
-
 	// Ensure that all config entry writes go to the primary datacenter. These will then
 	// be replicated to all the other datacenters.
 	args.Datacenter = c.srv.config.PrimaryDatacenter
@@ -301,6 +301,10 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) 
 
 // ResolveServiceConfig
 func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, reply *structs.ServiceConfigResponse) error {
+	if c.logger.IsDebug() {
+		argsJson, _ := json.Marshal(args)
+		c.logger.Info("ResolveServiceConfig", "args", string(argsJson))
+	}
 	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
@@ -330,9 +334,17 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			// Pass the WatchSet to both the service and proxy config lookups. If either is updated during the
 			// blocking query, this function will be rerun and these state store lookups will both be current.
 			// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
-			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+			// TODO(tien.nguyenvan) Try resolve proxy config by service name first
+			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, args.Name, structs.DefaultEnterpriseMeta())
 			if err != nil {
-				return err
+				c.logger.Error("ResolveServiceConfig. proxy config get by service name", err)
+			}
+			if proxyEntry == nil {
+				//Fallback to get default proxy config
+				_, proxyEntry, err = state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+				if err != nil {
+					return err
+				}
 			}
 
 			var (
