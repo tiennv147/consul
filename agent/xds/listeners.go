@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -251,6 +252,20 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// default config if there is an error so it's safe to continue.
 			s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
 		}
+
+		// If escape hatch is present, create a listener from it and move on to the next
+		if cfg.EnvoyListenerJSON != "" {
+			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
+			if err != nil {
+				s.Logger.Error("failed to parse envoy_listener_json",
+					"upstream", u.Identifier(),
+					"error", err)
+				continue
+			}
+			resources = append(resources, upstreamListener)
+			continue
+		}
+
 		upstreamListener := makeListener(id, u, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
@@ -498,7 +513,10 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 
 func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-
+	if s.Logger.IsDebug() {
+		proxyConfig, _ := json.Marshal(cfgSnap.Proxy)
+		s.Logger.Debug("makeIngressGatewayListeners", "proxyConfig", string(proxyConfig))
+	}
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		var tlsContext *envoy_tls_v3.DownstreamTlsContext
 		if cfgSnap.IngressGateway.TLSEnabled {
@@ -506,6 +524,93 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
 			}
+		}
+
+		cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			// For debug only
+			s.Logger.Warn("failed to parse cfgSnap.Proxy.Config", "error", err)
+		}
+
+		// Generate and return custom public listener from config if one was provided.
+		if cfg.PublicListenerJSON != "" && listenerKey.Protocol != "tcp" {
+			// For now, only support http-like protocol
+			// Ingress gateway doesn't need to inject RBAC
+
+			l, err := makeListenerFromUserConfig(cfg.PublicListenerJSON)
+			if err != nil {
+				return nil, err
+			}
+			// Override listener name, address to support multi-port with same proxy config
+			l.Name = fmt.Sprintf("%s:%s:%d", listenerKey.Protocol, address, listenerKey.Port)
+			l.Address = makeAddress(address, listenerKey.Port)
+
+			transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
+			for chainIdx, _ := range l.FilterChains {
+				chain := l.FilterChains[chainIdx]
+				// Inject tls context
+				chain.TransportSocket = transportSocket
+
+				// Override route
+				var (
+					hcmFilter    *envoy_listener_v3.Filter
+					hcmFilterIdx int
+				)
+
+				for filterIdx, filter := range chain.Filters {
+					if filter.Name == httpConnectionManagerOldName ||
+						filter.Name == httpConnectionManagerNewName {
+						hcmFilter = filter
+						hcmFilterIdx = filterIdx
+						break
+					}
+				}
+				if hcmFilter == nil {
+					s.Logger.Warn(fmt.Sprintf("filter chain %d has nil http connection manager filter", chainIdx))
+					continue
+				}
+				var (
+					hcm envoy_http_v3.HttpConnectionManager
+				)
+				tc, ok := hcmFilter.ConfigType.(*envoy_listener_v3.Filter_TypedConfig)
+				if !ok {
+					s.Logger.Warn(
+						fmt.Sprintf("filter chain %d has a %q filter with an unsupported config type: %T",
+							chainIdx,
+							hcmFilter.Name,
+							hcmFilter.ConfigType),
+					)
+				}
+
+				if err := ptypes.UnmarshalAny(tc.TypedConfig, &hcm); err != nil {
+					s.Logger.Warn("cannot unmarshal http connection manager filter", err)
+					continue
+				}
+
+				hcm.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_Rds{
+					Rds: &envoy_http_v3.Rds{
+						RouteConfigName: listenerKey.RouteName(),
+						ConfigSource: &envoy_core_v3.ConfigSource{
+							ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+							ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+								Ads: &envoy_core_v3.AggregatedConfigSource{},
+							},
+						},
+					},
+				}
+
+				newFilter, err := makeFilter(hcmFilter.Name, &hcm)
+				if err != nil {
+					s.Logger.Warn("cannot make new filter", err)
+					continue
+				}
+				chain.Filters[hcmFilterIdx] = newFilter
+			}
+
+			resources = append(resources, l)
+			continue
 		}
 
 		if listenerKey.Protocol == "tcp" {
@@ -759,7 +864,6 @@ func injectHTTPFilterOnFilterChains(
 		hcm.HttpFilters = append([]*envoy_http_v3.HttpFilter{
 			authzFilter,
 		}, hcm.HttpFilters...)
-
 		// And persist the modified filter.
 		newFilter, err := makeFilter(hcmFilter.Name, &hcm)
 		if err != nil {
