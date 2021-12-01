@@ -18,6 +18,8 @@ import (
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoytcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	envoyaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	accesslogv2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/envoyproxy/go-control-plane/pkg/conversion"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -1188,9 +1190,21 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 		op = envoyhttp.HttpConnectionManager_Tracing_EGRESS
 	}
 
+	config, _ := pbtypes.MarshalAny(&accesslogv2.FileAccessLog{
+		Path: "/var/log/envoy/access_log.log",
+	})
+
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(opts.statPrefix, opts.filterName),
 		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
+		AccessLog: []*envoyaccesslog.AccessLog{
+			{
+				Name: "envoy.file_access_log",
+				ConfigType: &envoyaccesslog.AccessLog_TypedConfig{
+					TypedConfig: config,
+				},
+			},
+		},
 		HttpFilters: []*envoyhttp.HttpFilter{
 			{
 				Name: "envoy.router",
