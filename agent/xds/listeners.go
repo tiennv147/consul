@@ -1184,27 +1184,67 @@ func makeStatPrefix(prefix, filterName string) string {
 	return fmt.Sprintf("%s%s", prefix, strings.Replace(filterName, ":", "_", -1))
 }
 
+func fileAccessLogJSON(path string, fields map[string]string) []*envoyaccesslog.AccessLog {
+
+	jsonformat := &pbstruct.Struct{
+		Fields: make(map[string]*pbstruct.Value),
+	}
+	for k, v := range fields {
+			jsonformat.Fields[k] = sv(v)
+	}
+	config, _ := pbtypes.MarshalAny(&accesslogv2.FileAccessLog{
+		Path: path,
+		AccessLogFormat: &accesslogv2.FileAccessLog_JsonFormat{
+			JsonFormat: jsonformat,
+		},
+	})
+
+	return []*envoyaccesslog.AccessLog{{
+		Name: wellknown.FileAccessLog,
+		ConfigType: &envoyaccesslog.AccessLog_TypedConfig{
+			TypedConfig: config,
+		},
+	}}
+}
+
+func sv(s string) *pbstruct.Value {
+	return &pbstruct.Value{
+		Kind: &pbstruct.Value_StringValue{
+			StringValue: s,
+		},
+	}
+}
+
 func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 	op := envoyhttp.HttpConnectionManager_Tracing_INGRESS
 	if !opts.ingress {
 		op = envoyhttp.HttpConnectionManager_Tracing_EGRESS
 	}
 
-	config, _ := pbtypes.MarshalAny(&accesslogv2.FileAccessLog{
-		Path: "/var/log/envoy/access_log.log",
-	})
-
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(opts.statPrefix, opts.filterName),
 		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
-		AccessLog: []*envoyaccesslog.AccessLog{
-			{
-				Name: "envoy.file_access_log",
-				ConfigType: &envoyaccesslog.AccessLog_TypedConfig{
-					TypedConfig: config,
-				},
+		AccessLog: fileAccessLogJSON(
+			"/var/log/envoy/access_log.log",
+			map[string]string{
+				"authority": "%REQ(:AUTHORITY)%",
+				"bytes_received": "%BYTES_RECEIVED%",
+				"bytes_sent": "%BYTES_SENT%",
+				"duration": "%DURATION%",
+				"method": "%REQ(:METHOD)%",
+				"path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+				"protocol": "%PROTOCOL%",
+				"response_code": "%RESPONSE_CODE%",
+				"response_code_details": "%RESPONSE_CODE_DETAILS%",
+				"response_flags": "%RESPONSE_FLAGS%",
+				"start_time": "%START_TIME%",
+				"upstream_host": "%UPSTREAM_HOST%",
+				"user_agent": "%REQ(USER-AGENT)%",
+				"x_envoy_upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+				"x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+				"x_request_id": "%REQ(X-REQUEST-ID)%",
 			},
-		},
+		),
 		HttpFilters: []*envoyhttp.HttpFilter{
 			{
 				Name: "envoy.router",
